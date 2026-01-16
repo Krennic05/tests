@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Usuarios</title>
+</head>
+<body>
+
+<h1>Crear Usuario</h1>
+
+<form action="/admin/usuarios" method="POST">
+
+    <label>RUT:</label><br>
+    <input type="text" name="rut" required><br><br>
+
+    <label>Nombre:</label><br>
+    <input type="text" name="nombre" required><br><br>
+
+    <label>Contraseña:</label><br>
+    <input type="password" name="contraseña" required><br><br>
+
+    <button type="submit">Crear Usuario</button>
+</form>
+
+<br>
+
+<button onclick="location.href='/admin'">
+    Volver al administrador
+</button>
+
+<script>
+    const params = new URLSearchParams(window.location.search);
+
+    if (params.get("ok")) {
+        alert("✅ Usuario creado correctamente");
+    }
+
+    if (params.get("error") === "rut_existe") {
+        alert("❌ El RUT ya está registrado");
+    }
+
+    if (params.get("error") === "rut_invalido") {
+        alert("❌ El RUT ingresado no es válido");
+    }
+</script>
+
+<!-- Este script hace que, una vez creado exitosamente el nuevo usuario, muestre un mensaje y un boton que, una vez presionado regresa a la pagina de formulario -->
+</body>
+</html>
+
+

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Crear Protocolo</title>
+    <link rel="stylesheet" href="/estilos/formularios.css">
+</head>
+
+<body>
+
+<div class="protocolo-page">
+    <div class="page-container">
+
+    <h1>Crear Protocolo Operatorio</h1>
+
+    <form method="POST" action="/usuario/protocolos" class="form-layout">
+
+        <!-- DATOS DEL PROTOCOLO -->
+        <fieldset>
+            <legend>Datos del Protocolo</legend>
+
+            <div class="form-group">
+                <label for="id">ID Protocolo</label>
+                <input type="number" id="id" name="id" required>
+            </div>
+
+            <div class="form-group">
+                <label for="fecha">Fecha</label>
+                <input type="date" id="fecha" name="fecha" required>
+            </div>
+        </fieldset>
+
+        <!-- PACIENTE -->
+        <fieldset>
+            <legend>Paciente</legend>
+
+            <div class="form-group">
+                <label for="paciente_rut">RUT Paciente</label>
+                <input type="text" id="paciente_rut" name="paciente_rut" required>
+            </div>
+
+            <div class="form-group">
+                <label for="paciente_nombre">Nombre Paciente</label>
+                <input type="text" id="paciente_nombre" name="paciente_nombre" required>
+            </div>
+        </fieldset>
+
+        <!-- CIRUGÍA -->
+        <fieldset>
+            <legend>Cirugía</legend>
+
+            <div class="form-group">
+                <label for="cirugia_nombre">Nombre de la cirugía</label>
+                <input type="text" id="cirugia_nombre" name="cirugia_nombre" required>
+            </div>
+        </fieldset>
+
+        <!-- MÉDICO -->
+        <fieldset>
+            <legend>Médico</legend>
+
+            <div class="form-group">
+                <label for="id_medico">Seleccione médico</label>
+                <select id="id_medico" name="id_medico" required>
+                    <option value="">Seleccione una opción</option>
+                    <option value="1">Dr. Barrientos</option>
+                    <option value="2">Dr. Rodriguez</option>
+                    <option value="3">Dr. Viacaba</option>
+                    <option value="4">Dr. Mujica</option>
+                    <option value="5">Dr. El Salug</option>
+                    <option value="6">Dr. Ibarra</option>
+                    <option value="7">Dr. Vial</option>
+                    <option value="8">Dr. Docuiac</option>
+                    <option value="9">Dr. Coronell</option>
+                    <option value="10">Dr. Wevar</option>
+                    <option value="11">Dr. Ceballos</option>
+                    <option value="12">Dr. Hardoy</option>
+                </select>
+            </div>
+        </fieldset>
+
+        <!-- PREVISIÓN -->
+        <fieldset>
+            <legend>Previsión</legend>
+
+            <div class="form-group">
+                <label for="id_prevision">Seleccione previsión</label>
+                <select id="id_prevision" name="id_prevision" required>
+                    <option value="">Seleccione previsión</option>
+                    <option value="1">Particular</option>
+                    <option value="2">Fonasa</option>
+                    <option value="3">Cruz Blanca</option>
+                    <option value="4">Colmena</option>
+                    <option value="5">Masvida</option>
+                    <option value="6">Consalud</option>
+                    <option value="7">Banmédica</option>
+                </select>
+            </div>
+        </fieldset>
+
+        
+    </form>
+
+    </div>
+    <div class="botones-form">
+        <button type="submit">Crear Protocolo</button>
+        <button class="btn-secondary" onclick="location.href='/user'">
+            Volver
+        </button>
+    </div>
+</div>
+
+<script>
+    const params = new URLSearchParams(window.location.search);
+
+    if (params.get("error") === "duplicado") {
+        alert("❌ El protocolo ya existe");
+    }
+
+    if (params.get("error") === "faltan_datos") {
+        alert("❌ Debes completar todos los campos");
+    }
+
+    if (params.get("error") === "general") {
+        alert("❌ Ocurrió un error al crear el protocolo");
+    }
+
+    if (params.get("ok") === "1") {
+        alert("✅ Protocolo creado correctamente");
+    }
+</script>
+
+</body>
+</html>
+
