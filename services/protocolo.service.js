@@ -70,6 +70,6 @@ async function traerProtocolos({
     return lista;
 }
 module.exports = {
-    crearProtocolo
+    crearProtocolo,traerProtocolos
 };
 

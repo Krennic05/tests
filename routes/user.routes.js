@@ -5,7 +5,7 @@ const conexion = require("../config/conexion");
 
 const { obtenerOCrearPaciente } = require("../services/paciente.service");
 const { obtenerOCrearCirugia } = require("../services/cirugia.service");
-const { crearProtocolo } = require("../services/protocolo.service");
+const { crearProtocolo,traerProtocolos } = require("../services/protocolo.service");
 
 const bcrypt = require("bcrypt");
 
@@ -172,7 +172,7 @@ router.get("/api/usuario/protocolos", auth, async (req, res) => {
     try {
         const id_usuario = req.session.usuario.id;
 
-        const protocolos = await listarProtocolosPorUsuario(id_usuario);
+        const protocolos = await traerProtocolos(id_usuario);
 
         res.json(protocolos);
 
