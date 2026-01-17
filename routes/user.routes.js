@@ -128,7 +128,7 @@ router.post("/usuario/protocolos", async (req, res) => {
         const id_cirugia = await obtenerOCrearCirugia(cirugia_nombre);
 
         //Protocolo
-        await crearProtocolo({
+        const protocolo = await crearProtocolo({
             id,
             id_usuario,
             id_paciente,
@@ -137,8 +137,6 @@ router.post("/usuario/protocolos", async (req, res) => {
             id_prevision,
             fecha
         });
-
-        res.redirect("/usuario?ok=protocolo");
 
     } catch (error) {
 
@@ -153,6 +151,7 @@ router.post("/usuario/protocolos", async (req, res) => {
             "/usuario/protocolos?error=general"
         );
     }
+    return res.redirect("/user?ok=protocolo");
 
 });
 

@@ -6,15 +6,14 @@ async function obtenerOCrearCirugia(nombre) {
     }
 
     const rows = await conexion.query(
-        "SELECT id FROM cirugia WHERE nombre = ?",
+        `SELECT id FROM cirugia WHERE nombre LIKE '${nombre}'`,
         [nombre]
     );
 
     if (rows.length > 0) {
         return rows[0].id;
     }
-
-    const [result] = await conexion.query(
+    const result = await conexion.query(
         "INSERT INTO cirugia (nombre) VALUES (?)",
         [nombre]
     );

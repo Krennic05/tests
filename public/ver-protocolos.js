@@ -18,10 +18,10 @@ fetch("/api/usuario/protocolos")
             tr.innerHTML = `
                 <td>${p.id}</td>
                 <td>${p.fecha}</td>
-                <td>${p.paciente_nombre}</td>
-                <td>${p.paciente_rut}</td>
-                <td>${p.cirugia}</td>
-                <td>${p.medico}</td>
+                <td>${p.nombrePaciente}</td>
+                <td>${p.rutPaciente}</td>
+                <td>${p.nombreCirugia}</td>
+                <td>${p.nombreMedico}</td>
                 <td>${p.prevision}</td>
             `;
 

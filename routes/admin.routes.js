@@ -5,6 +5,7 @@ const auth = require("../middlewares/auth");//
 
 const conexion = require("../config/conexion"); // ajusta la ruta con conexión a base de datos
 const validarRut = require("../utils/validarRut"); //necesario para sistema para validar formato Rut
+const { traerProtocolos } = require("../services/protocolo.service");
 
 const router = express.Router();
 
@@ -284,4 +285,76 @@ router.post("/admin/editar-password/:rut", async (req, res) => {
     });
 });
 
+/* =========================
+   VISTA LISTAR PROTOCOLOS
+========================= */
+router.get("/admin/ver-protocolos", async (req, res) => {
+    const id_usuario = req.session.usuario.id;
+    console.log(req)
+    console.log(req.session)
+    console.log(req.session.usuario)
+    console.log(req.session.usuario.id)
+    const sql = await traerProtocolos(id_usuario);
+
+    // conexion.query( (error, usuarios) => {
+    //     if (error) {
+    //         console.error(error);
+    //         return res.send("Error al obtener usuarios");
+    //     }
+
+        // Render simple con HTML
+        let html = `
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Usuarios</title>
+            <style>
+                table { border-collapse: collapse; width: 50%; }
+                th, td { border: 1px solid #ccc; padding: 8px; }
+                th { background: #eee; }
+            </style>
+        </head>
+        <body>
+
+        <h1>Listado de Usuarios</h1>
+
+        <table>
+            <tr>
+                <th>ID</th>
+                <th>Fecha</th>
+                <th>Paciente</th>
+                <th>RUT</th>
+                <th>Cirugía</th>
+                <th>Médico</th>
+                <th>Previsión</th>
+            </tr>
+        `;
+
+        sql.forEach(list => {
+            html += `
+            <tr>
+                <td>${list.id}</td>
+                <td>${list.fecha}</td>
+                <td>${list.nombrePaciente}</td>
+                <td>${list.rutPaciente}</td>
+                <td>${list.nombreCirugia}</td>
+                <td>${list.nombreMedico}</td>
+                <td>${list.prevision}</td>
+            </tr>
+            `;
+        });
+
+        html += `
+        </table>
+
+        <br>
+        <a href="/admin">Volver al panel</a>
+
+        </body>
+        </html>
+        `;
+
+        res.send(html);
+    // });
+});
 module.exports = router;

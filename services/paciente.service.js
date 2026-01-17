@@ -12,7 +12,7 @@ async function obtenerOCrearPaciente( rut, nombre ) {
 
     // Buscar paciente
     const rows = await conexion.query(
-        `SELECT id FROM paciente WHERE rut like '${rut}'`,
+        `SELECT id FROM paciente WHERE rut LIKE '${rut}'`,
         [rut]
     );
 
@@ -24,7 +24,7 @@ async function obtenerOCrearPaciente( rut, nombre ) {
 
 
     // Si no existe → crear
-    const [result] = await conexion.query(
+    const result = await conexion.query(
         "INSERT INTO paciente (rut, nombre) VALUES (?, ?)",
         [rut, nombre]
     );
