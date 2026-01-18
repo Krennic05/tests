@@ -6,3 +6,5 @@ npm install express,
 
 npm install bcrypt,
 npm install bcrypt express-session,
+
+para iniciar el servidor ejecutar en consola node server.js
