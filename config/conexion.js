@@ -1,10 +1,11 @@
 let conectar = require("mysql2");
 
-let conexion = conectar.createConnection({
-    host: "localhost",
-    database: "proyecto_titulacion",
-    user: "root",
-    password: "A828797fe$"                                        
+const conexion = conectar.createConnection({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: process.env.DB_PORT
 });
 
 conexion.connect(function(error){
