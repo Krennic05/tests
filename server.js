@@ -1,6 +1,7 @@
 const express = require("express");
 require("dotenv").config();
 const session = require("express-session");
+const MySQLStore = require("express-mysql-session")(session);
 const path = require("path");
 
 const authRoutes = require("./routes/auth.routes");
@@ -13,8 +14,19 @@ const app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+// CONFIGURACIÓN DE SESIONES CON MYSQL
+const sessionStore = new MySQLStore({
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME
+});
+
 app.use(session({
+    key: "session_id",
     secret: process.env.SESSION_SECRET,
+    store: sessionStore,
     resave: false,
     saveUninitialized: false
 }));
