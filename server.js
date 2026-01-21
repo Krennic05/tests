@@ -1,4 +1,5 @@
 const express = require("express");
+require("dotenv").config();
 const session = require("express-session");
 const path = require("path");
 
@@ -13,7 +14,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 app.use(session({
-    secret: "clave_secreta",
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false
 }));
@@ -26,9 +27,11 @@ app.use(authRoutes);
 app.use(adminRoutes);
 app.use(usuarioRoutes);
 
-// Servidor
-app.listen(3000, () => {
-    console.log("Servidor corriendo en http://localhost:3000");
+// Puerto dinámico (Railway)
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+    console.log(`Servidor corriendo en el puerto ${PORT}`);
 });
 
 
