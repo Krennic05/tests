@@ -23,12 +23,17 @@ const sessionStore = new MySQLStore({
     database: process.env.DB_NAME
 });
 
+app.set("trust proxy", 1); //añadido 23/01
+
 app.use(session({
     key: "session_id",
     secret: process.env.SESSION_SECRET,
     store: sessionStore,
     resave: false,
-    saveUninitialized: false
+    saveUninitialized: false,
+    cookie: {
+        secure: false // true solo si usas HTTPS directo
+    } //añadido 23/01
 }));
 
 // Archivos estáticos

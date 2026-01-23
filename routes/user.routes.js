@@ -1,7 +1,7 @@
 const express = require("express");
 const path = require("path");
 const auth = require("../middlewares/auth");
-const conexion = require("../config/conexion");
+const db = require("../config/db");
 
 const { obtenerOCrearPaciente } = require("../services/paciente.service");
 const { obtenerOCrearCirugia } = require("../services/cirugia.service");
@@ -43,54 +43,55 @@ router.get("/usuario/cambiar-password", (req, res) => {
 });
 
 // POST /usuario/cambiar-password
+// POST /usuario/cambiar-password
 router.post("/usuario/cambiar-password", async (req, res) => {
+    try {
+        const { actual, nueva, confirmar } = req.body;
+        const usuarioId = req.session.usuario.id;
 
-    const { actual, nueva, confirmar } = req.body;
-    const usuarioId = req.session.usuario.id;
+        // 1️⃣ Validaciones básicas
+        if (nueva !== confirmar) {
+            return res.send("La nueva contraseña no coincide");
+        }
 
-    // Validaciones básicas
-    if (nueva !== confirmar) {
-        return res.send("La nueva contraseña no coincide");
-    }
+        if (nueva.length < 6) {
+            return res.send("La contraseña debe tener al menos 6 caracteres");
+        }
 
-    if (nueva.length < 6) {
-        return res.send("La contraseña debe tener al menos 6 caracteres");
-    }
+        // 2️⃣ Obtener contraseña actual desde BD
+        const sqlBuscar = "SELECT contraseña FROM usuario WHERE id = ?";
+        const results = await db.query(sqlBuscar, [usuarioId]);
 
-    // Obtener contraseña actual desde BD
-    const sqlBuscar = "SELECT contraseña FROM usuario WHERE id = ?";
-
-    conexion.query(sqlBuscar, [usuarioId], async (error, results) => {
-        if (error || results.length === 0) {
+        if (results.length === 0) {
             return res.send("Error al verificar usuario");
         }
 
         const hashActual = results[0].contraseña;
 
-        // Comparar contraseña actual
+        // 3️⃣ Comparar contraseña actual
         const coincide = await bcrypt.compare(actual, hashActual);
 
         if (!coincide) {
             return res.send("Contraseña actual incorrecta");
         }
 
-        // Hashear nueva contraseña
+        // 4️⃣ Hashear nueva contraseña
         const nuevoHash = await bcrypt.hash(nueva, 10);
 
-        // Actualizar en BD
+        // 5️⃣ Actualizar en BD
         const sqlUpdate = "UPDATE usuario SET contraseña = ? WHERE id = ?";
+        await db.query(sqlUpdate, [nuevoHash, usuarioId]);
 
-        conexion.query(sqlUpdate, [nuevoHash, usuarioId], (error) => {
-            if (error) {
-                return res.send("Error al actualizar contraseña");
-            }
+        // 6️⃣ Respuesta
+        res.send(`
+            <p>Contraseña actualizada correctamente</p>
+            <a href="/user">Volver</a>
+        `);
 
-            res.send(`
-                <p>Contraseña actualizada correctamente</p>
-                <a href="/user">Volver</a>
-            `);
-        });
-    });
+    } catch (error) {
+        console.error(error);
+        res.send("Error al actualizar contraseña");
+    }
 });
 
 //CREACION DE PROTOCOLOS:

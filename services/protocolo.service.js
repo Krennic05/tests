@@ -1,5 +1,8 @@
-const conexion = require("../config/db");
+const db = require("../config/db");
 
+/* =========================
+   CREAR PROTOCOLO
+========================= */
 async function crearProtocolo({
     id,
     id_usuario,
@@ -10,28 +13,29 @@ async function crearProtocolo({
     fecha
 }) {
     if (
-        !id ||
-        !id_usuario ||
-        !id_paciente ||
-        !id_cirugia ||
-        !id_medico ||
-        !id_prevision ||
-        !fecha
+    id == null ||
+    id_usuario == null ||
+    id_paciente == null ||
+    id_cirugia == null ||
+    id_medico == null ||
+    id_prevision == null ||
+    !fecha
     ) {
-        throw new Error("Faltan datos obligatorios");
+    throw new Error("Faltan datos obligatorios");
     }
 
-    // Evitar duplicado de protocolo
-    const existe = await conexion.query(
+    // 1️⃣ Evitar duplicado
+    const existe = await db.query(
         "SELECT id FROM protocolo WHERE id = ?",
         [id]
     );
 
     if (existe.length > 0) {
-        throw new Error("El protocolo ya existe");
+        throw new Error("PROTOCOLO_EXISTE");
     }
 
-    return await conexion.query(
+    // 2️⃣ Insertar
+    await db.query(
         `INSERT INTO protocolo 
         (id, id_usuario, id_paciente, id_cirugia, id_medico, id_prevision, fecha)
         VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -39,161 +43,167 @@ async function crearProtocolo({
     );
 }
 
-async function traerProtocolos(
-    id,textoBusqueda = null
-) {
-    if (
-        !id
-    ) {
+/* =========================
+   TRAER PROTOCOLOS
+========================= */
+async function traerProtocolos(id_usuario) {
+    if (!id_usuario) {
         throw new Error("Faltan datos obligatorios");
     }
-    let busqueda = ``;
-    if(id != 1){ //no es admin
-        busqueda = ` WHERE id_usuario = ${id}`
-    }
-    let busquedaOr = ``;
-    if(textoBusqueda){
-        busquedaOr = (busqueda === ``?` WHERE `:' AND ')+
-        `( protocolo.id LIKE '%${textoBusqueda}%' OR protocolo.fecha LIKE '%${textoBusqueda}%' OR `+
-        `rutPaciente LIKE '%${textoBusqueda}%' OR nombrePaciente LIKE '%${textoBusqueda}%' OR prevision LIKE '%${textoBusqueda}%' OR `
-        +`nombreCirugia LIKE '%${textoBusqueda}%' OR rutMedico LIKE '%${textoBusqueda}%' OR nombreMedico LIKE '%${textoBusqueda}%' )`
-    }
-    const text = 
-        `SELECT protocolo.id, protocolo.fecha, `+
-        `paciente.rut as rutPaciente, paciente.nombre as nombrePaciente, `+
-        `cirugia.nombre as nombreCirugia, `+
-        `medico.rut as rutMedico, medico.nombre as nombreMedico, `+
-        `prevision.nombre as prevision `+
-        `FROM protocolo  `+
-        `LEFT JOIN paciente on protocolo.id_paciente = paciente.id  ` +
-        `LEFT JOIN cirugia on protocolo.id_cirugia = cirugia.id  ` +
-        `LEFT JOIN medico on protocolo.id_medico = medico.id  ` +
-        `LEFT JOIN prevision on protocolo.id_prevision = prevision.id `;
 
-    const lista = await conexion.query( text + busqueda
-    );
+    let where = "";
+    let params = [];
 
-    return lista;
-}
-async function borrarProtocolo(
-    id,idBorrar
-) {
-    if (
-        !id
-    ) {
-        throw new Error("Faltan datos obligatorios");
+    // Si no es admin
+    if (id_usuario !== 1) {
+        where = "WHERE protocolo.id_usuario = ?";
+        params.push(id_usuario);
     }
-    let busqueda = ` WHERE id = ${idBorrar} `;
-    if(id != 1){ //no es admin
-        busqueda += ` id_usuario = ${id}`
-    }
-    const text = 
-        `SELECT id FROM protocolo `;
 
-    const lista = await conexion.query( text + busqueda);
-    if(lista.length === 0){
-        return //no se puede inaccesible para el usuario o no existe
-    }
-    await conexion.query( 'DELETE FROM protocolo ' + busqueda);
-}
-async function findOneProtocolo(
-    id,idBuscar
-) {
-    if (
-        !id
-    ) {
-        throw new Error("Faltan datos obligatorios");
-    }
-    let busqueda = ` WHERE id = ${idBuscar} `;
-    if(id != 1){ //no es admin
-        busqueda += ` id_usuario = ${id}`
-    }
-    const text = 
-        `SELECT protocolo.id, protocolo.fecha, `+
-        `paciente.rut as rutPaciente, paciente.nombre as nombrePaciente, `+
-        `cirugia.nombre as nombreCirugia, `+
-        `medico.rut as rutMedico, medico.nombre as nombreMedico, `+
-        `prevision.nombre as prevision `+
-        `FROM protocolo  `+
-        `LEFT JOIN paciente on protocolo.id_paciente = paciente.id  ` +
-        `LEFT JOIN cirugia on protocolo.id_cirugia = cirugia.id  ` +
-        `LEFT JOIN medico on protocolo.id_medico = medico.id  ` +
-        `LEFT JOIN prevision on protocolo.id_prevision = prevision.id `;
+    const sql = `
+        SELECT 
+            protocolo.id,
+            protocolo.fecha,
+            paciente.rut AS rutPaciente,
+            paciente.nombre AS nombrePaciente,
+            cirugia.nombre AS nombreCirugia,
+            medico.nombre AS nombreMedico,
+            prevision.nombre AS prevision
+        FROM protocolo
+        LEFT JOIN paciente ON protocolo.id_paciente = paciente.id
+        LEFT JOIN cirugia ON protocolo.id_cirugia = cirugia.id
+        LEFT JOIN medico ON protocolo.id_medico = medico.id
+        LEFT JOIN prevision ON protocolo.id_prevision = prevision.id
+        ${where}
+        ORDER BY protocolo.fecha DESC
+    `;
 
-    return [lista] = await conexion.query( text + busqueda);
+    return await db.query(sql, params);
 }
-async function updateProtocolo(
-    idusuario,updatear,{
-    id,
-    id_paciente,
-    id_cirugia,
-    id_medico,
-    id_prevision,
-    fecha
-}
-) {
-    if (
-        !idusuario || !updatear
-    ) {
-        throw new Error("Faltan datos obligatorios");
-    }
-    let busqueda = ` WHERE id = ${updatear} `;
-    if(idusuario != 1){ //no es admin
-        busqueda += ` id_usuario = ${idusuario}`
-    }
-    const text = 
-        `SELECT id FROM protocolo `;
 
-    const lista = await conexion.query( text + busqueda);
-    if(lista.length === 0){
-        return //no se puede inaccesible para el usuario o no existe
-    }
-    const comparativo = lista[0];
-    let set = ''
-    if(!id && id != comparativo.id){
-        let exist = await conexion.query(`SELECT id FROM protocolo  WHERE id = ${id} `)
-        if(exist.length > 0){
-            return //no se puede ese id ya existe y no se debe usar
-        }
-        set = ` id = ${id} `
-    }
-    if(!id_paciente && id_paciente != comparativo.id_paciente){
-        if(set === ''){
-            set += `,`
-        }
-        set = ` id_paciente = ${id_paciente} `
-    }
-    if(!id_medico && id_medico != comparativo.id_paciente){
-        if(set === ''){
-            set += `,`
-        }
-        set = ` id_medico = ${id_medico} `
-    }
-    if(!id_cirugia && id_cirugia != comparativo.id_cirugia){
-        if(set === ''){
-            set += `,`
-        }
-        set = ` id_cirugia = ${id_cirugia} `
-    }
-    if(!id_prevision && id_prevision != comparativo.id_prevision){
-        if(set === ''){
-            set += `,`
-        }
-        set = ` id_prevision = ${id_prevision} `
-    }
-    if(!fecha && fecha != comparativo.fecha){
-        if(set === ''){
-            set += `,`
-        }
-        set = ` fecha = ${fecha} `
-    }
-    if(set === '')
-    {
-        return //no cambio nada
-    }
-    await conexion.query( 'UPDATE FROM protocolo SET '+ set + busqueda);
-}
 module.exports = {
-    crearProtocolo,traerProtocolos
+    crearProtocolo,
+    traerProtocolos
 };
+
+
+// El codigo comentado a continuación esta planteado para uso futuro.
+// async function borrarProtocolo(
+//     id,idBorrar
+// ) {
+//     if (
+//         !id
+//     ) {
+//         throw new Error("Faltan datos obligatorios");
+//     }
+//     let busqueda = ` WHERE id = ${idBorrar} `;
+//     if(id != 1){ //no es admin
+//         busqueda += ` id_usuario = ${id}`
+//     }
+//     const text = 
+//         `SELECT id FROM protocolo `;
+
+//     const lista = await conexion.query( text + busqueda);
+//     if(lista.length === 0){
+//         return //no se puede inaccesible para el usuario o no existe
+//     }
+//     await conexion.query( 'DELETE FROM protocolo ' + busqueda);
+// }
+// async function findOneProtocolo(
+//     id,idBuscar
+// ) {
+//     if (
+//         !id
+//     ) {
+//         throw new Error("Faltan datos obligatorios");
+//     }
+//     let busqueda = ` WHERE id = ${idBuscar} `;
+//     if(id != 1){ //no es admin
+//         busqueda += ` id_usuario = ${id}`
+//     }
+//     const text = 
+//         `SELECT protocolo.id, protocolo.fecha, `+
+//         `paciente.rut as rutPaciente, paciente.nombre as nombrePaciente, `+
+//         `cirugia.nombre as nombreCirugia, `+
+//         `medico.rut as rutMedico, medico.nombre as nombreMedico, `+
+//         `prevision.nombre as prevision `+
+//         `FROM protocolo  `+
+//         `LEFT JOIN paciente on protocolo.id_paciente = paciente.id  ` +
+//         `LEFT JOIN cirugia on protocolo.id_cirugia = cirugia.id  ` +
+//         `LEFT JOIN medico on protocolo.id_medico = medico.id  ` +
+//         `LEFT JOIN prevision on protocolo.id_prevision = prevision.id `;
+
+//     return [lista] = await conexion.query( text + busqueda);
+// }
+// async function updateProtocolo(
+//     idusuario,updatear,{
+//     id,
+//     id_paciente,
+//     id_cirugia,
+//     id_medico,
+//     id_prevision,
+//     fecha
+// }
+// ) {
+//     if (
+//         !idusuario || !updatear
+//     ) {
+//         throw new Error("Faltan datos obligatorios");
+//     }
+//     let busqueda = ` WHERE id = ${updatear} `;
+//     if(idusuario != 1){ //no es admin
+//         busqueda += ` id_usuario = ${idusuario}`
+//     }
+//     const text = 
+//         `SELECT id FROM protocolo `;
+
+//     const lista = await conexion.query( text + busqueda);
+//     if(lista.length === 0){
+//         return //no se puede inaccesible para el usuario o no existe
+//     }
+//     const comparativo = lista[0];
+//     let set = ''
+//     if(!id && id != comparativo.id){
+//         let exist = await conexion.query(`SELECT id FROM protocolo  WHERE id = ${id} `)
+//         if(exist.length > 0){
+//             return //no se puede ese id ya existe y no se debe usar
+//         }
+//         set = ` id = ${id} `
+//     }
+//     if(!id_paciente && id_paciente != comparativo.id_paciente){
+//         if(set === ''){
+//             set += `,`
+//         }
+//         set = ` id_paciente = ${id_paciente} `
+//     }
+//     if(!id_medico && id_medico != comparativo.id_paciente){
+//         if(set === ''){
+//             set += `,`
+//         }
+//         set = ` id_medico = ${id_medico} `
+//     }
+//     if(!id_cirugia && id_cirugia != comparativo.id_cirugia){
+//         if(set === ''){
+//             set += `,`
+//         }
+//         set = ` id_cirugia = ${id_cirugia} `
+//     }
+//     if(!id_prevision && id_prevision != comparativo.id_prevision){
+//         if(set === ''){
+//             set += `,`
+//         }
+//         set = ` id_prevision = ${id_prevision} `
+//     }
+//     if(!fecha && fecha != comparativo.fecha){
+//         if(set === ''){
+//             set += `,`
+//         }
+//         set = ` fecha = ${fecha} `
+//     }
+//     if(set === '')
+//     {
+//         return //no cambio nada
+//     }
+//     await conexion.query( 'UPDATE FROM protocolo SET '+ set + busqueda);
+// }
 

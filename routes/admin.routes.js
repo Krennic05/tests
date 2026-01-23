@@ -2,8 +2,9 @@ const express = require("express");
 const path = require("path");
 const bcrypt = require("bcrypt"); //para encriptar contraseñas
 const auth = require("../middlewares/auth");//
+// ajusta la ruta con conexión a base de datos
+const db = require("../config/db");
 
-const conexion = require("../config/conexion"); // ajusta la ruta con conexión a base de datos
 const validarRut = require("../utils/validarRut"); //necesario para sistema para validar formato Rut
 const { traerProtocolos } = require("../services/protocolo.service");
 
@@ -21,80 +22,47 @@ router.get("/admin/usuarios", (req, res) => {
     res.sendFile(path.join(__dirname, "../public/usuarios.html"));
 });
 
-// POST /admin/usuarios, CREAR USUARIO:
 router.post("/admin/usuarios", async (req, res) => {
-
     const { rut, nombre, contraseña } = req.body;
 
-    //Validar formato RUT
     if (!validarRut(rut)) {
         return res.redirect("/admin/usuarios?error=rut_invalido");
     }
 
-    //Validar que el RUT no exista
-    const validarRutSQL = "SELECT rut FROM usuario WHERE rut = ?";
+    try {
+        const existe = await db.query(
+            "SELECT rut FROM usuario WHERE rut = ?",
+            [rut]
+        );
 
-    conexion.query(validarRutSQL, [rut], async (error, results) => {
-        if (error) {
-            console.error(error);
-            return res.send("Error al validar RUT");
-        }
-
-        //Si existe, cancelar
-        if (results.length > 0) {
+        if (existe.length > 0) {
             return res.redirect("/admin/usuarios?error=rut_existe");
         }
 
-        try {
-            //Hashear contraseña
-            const hash = await bcrypt.hash(contraseña, 10);
+        const hash = await bcrypt.hash(contraseña, 10);
 
-            //Insertar usuario con HASH
-            const insertSQL = `
-                INSERT INTO usuario (rut, nombre, contraseña)
-                VALUES (?, ?, ?)
-            `;
+        await db.query(
+            "INSERT INTO usuario (rut, nombre, contraseña) VALUES (?, ?, ?)",
+            [rut, nombre, hash]
+        );
 
-            conexion.query(insertSQL, [rut, nombre, hash], (error) => {
-                if (error) {
-                    console.error(error);
-                    return res.send("Error al crear usuario");
-                }
+        res.redirect("/admin/usuarios?ok=1");
 
-                //Redirigir al formulario
-                res.redirect("/admin/usuarios?ok=1");
-            });
-
-        } catch (err) {
-            console.error(err);
-            res.send("Error al procesar contraseña");
-        }
-    });
+    } catch (error) {
+        console.error(error);
+        res.send("Error al crear usuario");
+    }
 });
-
-// Flujo completo (lo que pasa ahora)
-// Usuario envía formulario
-// Backend consulta la BD
-// Si el formato de RUT es incorrecto → vuelve al formulario con error
-// Si el RUT existe → vuelve al formulario con error
-// Si no existe → inserta y vuelve al formulario, hasheando la contraseña
-// El usuario puede seguir creando registros
-// ✔ Flujo profesional
-// ✔ Sin recargar manualmente
-// ✔ Sin duplicados
 
 /* =========================
    VISTA LISTAR USUARIOS
 ========================= */
-router.get("/admin/ver-usuarios", (req, res) => {
+router.get("/admin/ver-usuarios", async (req, res) => {
 
     const sql = "SELECT rut, nombre FROM usuario";
 
-    conexion.query(sql, (error, usuarios) => {
-        if (error) {
-            console.error(error);
-            return res.send("Error al obtener usuarios");
-        }
+    try {
+        const usuarios = await db.query(sql);
 
         // Render simple con HTML
         let html = `
@@ -147,36 +115,34 @@ router.get("/admin/ver-usuarios", (req, res) => {
         `;
 
         res.send(html);
-    });
+
+    } catch (error) {
+        console.error(error);
+        res.send("Error al obtener usuarios");
+    }
 });
 
-router.get("/admin/eliminar/:rut", (req, res) => {
-
-    const { rut } = req.params;
-
-    const sql = "DELETE FROM usuario WHERE rut = ?";
-
-    conexion.query(sql, [rut], (error) => {
-        if (error) {
-            console.error(error);
-            return res.send("Error al eliminar usuario");
-        }
+router.get("/admin/eliminar/:rut", async (req, res) => {
+    try {
+        await db.query(
+            "DELETE FROM usuario WHERE rut = ?",
+            [req.params.rut]
+        );
 
         res.redirect("/admin/ver-usuarios");
-    });
+    } catch (error) {
+        console.error(error);
+        res.send("Error al eliminar usuario");
+    }
 });
 
-router.get("/admin/editar/:rut", (req, res) => {
+router.get("/admin/editar/:rut", async (req, res) => {
 
     const { rut } = req.params;
-
     const sql = "SELECT rut, nombre FROM usuario WHERE rut = ?";
 
-    conexion.query(sql, [rut], (error, results) => {
-        if (error) {
-            console.error(error);
-            return res.send("Error al buscar usuario");
-        }
+    try {
+        const results = await db.query(sql, [rut]);
 
         if (results.length === 0) {
             return res.send("Usuario no encontrado");
@@ -200,42 +166,43 @@ router.get("/admin/editar/:rut", (req, res) => {
             <br>
             <a href="/admin/ver-usuarios">Cancelar</a>
         `);
-    });
+
+    } catch (error) {
+        console.error(error);
+        res.send("Error al buscar usuario");
+    }
 });
 
-router.post("/admin/editar/:rut", (req, res) => {
+router.post("/admin/editar/:rut", async (req, res) => {
 
     const { rut } = req.params;
     const { nombre } = req.body;
 
     const sql = "UPDATE usuario SET nombre = ? WHERE rut = ?";
 
-    conexion.query(sql, [nombre, rut], (error) => {
-        if (error) {
-            console.error(error);
-            return res.send("Error al actualizar usuario");
-        }
-
+    try {
+        await db.query(sql, [nombre, rut]);
         res.redirect("/admin/ver-usuarios");
-    });
+
+    } catch (error) {
+        console.error(error);
+        res.send("Error al actualizar usuario");
+    }
 });
 
-router.get("/admin/editar-password/:rut", (req, res) => {
+router.get("/admin/editar-password/:rut", async (req, res) => {
 
     const { rut } = req.params;
-
     const sql = "SELECT rut FROM usuario WHERE rut = ?";
 
-    conexion.query(sql, [rut], (error, results) => {
-        if (error) {
-            console.error(error);
-            return res.send("Error al buscar usuario");
-        }
+    try {
+        const results = await db.query(sql, [rut]);
 
         if (results.length === 0) {
             return res.send("Usuario no encontrado");
         }
 
+        // ⬇️ HTML exactamente igual
         res.send(`
             <h1>Cambiar contraseña</h1>
 
@@ -252,7 +219,11 @@ router.get("/admin/editar-password/:rut", (req, res) => {
             <br>
             <a href="/admin/ver-usuarios">Cancelar</a>
         `);
-    });
+
+    } catch (error) {
+        console.error(error);
+        res.send("Error al buscar usuario");
+    }
 });
 
 router.post("/admin/editar-password/:rut", async (req, res) => {
@@ -269,54 +240,48 @@ router.post("/admin/editar-password/:rut", async (req, res) => {
         return res.send("La contraseña debe tener al menos 6 caracteres");
     }
 
-    // 2️⃣ Hashear contraseña
-    const hash = await bcrypt.hash(contraseña, 10);
+    try {
+        // 2️⃣ Hashear contraseña
+        const hash = await bcrypt.hash(contraseña, 10);
 
-    // 3️⃣ Actualizar en BD
-    const sql = "UPDATE usuario SET contraseña = ? WHERE rut = ?";
+        // 3️⃣ Actualizar en BD
+        const sql = "UPDATE usuario SET contraseña = ? WHERE rut = ?";
 
-    conexion.query(sql, [hash, rut], (error) => {
-        if (error) {
-            console.error(error);
-            return res.send("Error al actualizar contraseña");
-        }
+        await db.query(sql, [hash, rut]);
 
         res.redirect("/admin/ver-usuarios");
-    });
+
+    } catch (error) {
+        console.error(error);
+        res.send("Error al actualizar contraseña");
+    }
 });
 
 /* =========================
    VISTA LISTAR PROTOCOLOS
 ========================= */
 router.get("/admin/ver-protocolos", async (req, res) => {
-    const id_usuario = req.session.usuario.id;
-    console.log(req)
-    console.log(req.session)
-    console.log(req.session.usuario)
-    console.log(req.session.usuario.id)
-    const sql = await traerProtocolos(id_usuario);
 
-    // conexion.query( (error, usuarios) => {
-    //     if (error) {
-    //         console.error(error);
-    //         return res.send("Error al obtener usuarios");
-    //     }
+    const id_usuario = req.session.usuario.id;
+
+    try {
+        const protocolos = await traerProtocolos(id_usuario);
 
         // Render simple con HTML
         let html = `
         <html>
         <head>
             <meta charset="UTF-8">
-            <title>Usuarios</title>
+            <title>Protocolos</title>
             <style>
-                table { border-collapse: collapse; width: 50%; }
+                table { border-collapse: collapse; width: 80%; }
                 th, td { border: 1px solid #ccc; padding: 8px; }
                 th { background: #eee; }
             </style>
         </head>
         <body>
 
-        <h1>Listado de Usuarios</h1>
+        <h1>Listado de Protocolos</h1>
 
         <table>
             <tr>
@@ -330,16 +295,16 @@ router.get("/admin/ver-protocolos", async (req, res) => {
             </tr>
         `;
 
-        sql.forEach(list => {
+        protocolos.forEach(p => {
             html += `
             <tr>
-                <td>${list.id}</td>
-                <td>${list.fecha}</td>
-                <td>${list.nombrePaciente}</td>
-                <td>${list.rutPaciente}</td>
-                <td>${list.nombreCirugia}</td>
-                <td>${list.nombreMedico}</td>
-                <td>${list.prevision}</td>
+                <td>${p.id}</td>
+                <td>${p.fecha}</td>
+                <td>${p.nombrePaciente}</td>
+                <td>${p.rutPaciente}</td>
+                <td>${p.nombreCirugia}</td>
+                <td>${p.nombreMedico}</td>
+                <td>${p.prevision}</td>
             </tr>
             `;
         });
@@ -355,6 +320,11 @@ router.get("/admin/ver-protocolos", async (req, res) => {
         `;
 
         res.send(html);
-    // });
+
+    } catch (error) {
+        console.error(error);
+        res.send("Error al obtener protocolos");
+    }
 });
+
 module.exports = router;
